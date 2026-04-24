@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>MOAI HUB - Chụp ảnh bố cục đẹp</title>
+  <title>MOAI HUB - Chụp ảnh AR vui nhộn</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -13,8 +13,6 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      padding: 0;
-      margin: 0;
     }
     .app {
       width: 100%;
@@ -28,231 +26,129 @@
       min-height: 100vh;
       position: relative;
     }
-    /* Header */
     .header {
       background: linear-gradient(135deg, #a8d8ea, #c3bef7);
       padding: 20px;
       text-align: center;
-      position: relative;
-    }
-    .header h1 {
-      font-size: 28px;
-      font-weight: 800;
       color: #fff;
-      letter-spacing: 1px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    /* Tab bar */
-    .tab-bar {
-      display: flex;
-      background: #f8fafc;
-      border-bottom: 1px solid #e0e5ec;
-    }
+    .tab-bar { display: flex; background: #f8fafc; border-bottom: 1px solid #e0e5ec; }
     .tab-btn {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      font-weight: 600;
-      color: #7c8a9a;
-      cursor: pointer;
-      transition: 0.2s;
+      flex: 1; padding: 12px; text-align: center; font-weight: 600; color: #7c8a9a; cursor: pointer;
       border-bottom: 3px solid transparent;
     }
-    .tab-btn.active {
-      color: #4ea4f6;
-      border-bottom-color: #4ea4f6;
-    }
-    /* Viewfinder container */
+    .tab-btn.active { color: #4ea4f6; border-bottom-color: #4ea4f6; }
     .viewfinder-container {
       position: relative;
       background: #000;
       overflow: hidden;
-      aspect-ratio: 4/3;
       margin: 8px 12px 0;
       border-radius: 24px;
       box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      aspect-ratio: 4/3;
     }
-    video, canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
     canvas { display: none; }
-    /* Overlays */
     .overlay-layer {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-      opacity: 0.6;
-      transition: opacity 0.2s;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.6;
     }
-    .grid-rule {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-    }
-    .grid-rule.thirds {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-    }
-    .grid-rule.thirds div {
-      border: 1px dashed rgba(255,255,255,0.7);
-    }
-    .grid-rule.center {
-      display: grid;
-      grid-template-columns: 1fr 2fr 1fr;
-      grid-template-rows: 1fr 2fr 1fr;
-    }
-    .grid-rule.center div {
-      border: 1px dashed rgba(255,255,255,0.7);
-    }
+    .grid-rule { position: absolute; width: 100%; height: 100%; }
+    .grid-rule.thirds { display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); }
+    .grid-rule.thirds div { border: 1px dashed rgba(255,255,255,0.7); }
+    .grid-rule.center { display: grid; grid-template-columns: 1fr 2fr 1fr; grid-template-rows: 1fr 2fr 1fr; }
+    .grid-rule.center div { border: 1px dashed rgba(255,255,255,0.7); }
     .grid-rule.diagonal {
       background: linear-gradient(135deg, transparent 49.5%, rgba(255,255,255,0.6) 49.5%, rgba(255,255,255,0.6) 50.5%, transparent 50.5%),
                   linear-gradient(45deg, transparent 49.5%, rgba(255,255,255,0.6) 49.5%, rgba(255,255,255,0.6) 50.5%, transparent 50.5%);
     }
     .overlay-guide-text {
-      position: absolute;
-      bottom: 8px;
-      right: 12px;
-      background: rgba(0,0,0,0.5);
-      color: #fff;
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 20px;
+      position: absolute; bottom: 6px; right: 10px; background: rgba(0,0,0,0.5); color: #fff;
+      font-size: 11px; padding: 2px 10px; border-radius: 20px; pointer-events: auto;
     }
-    /* Controls */
+    /* Sticker layer */
+    .sticker-layer {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;
+    }
+    .sticker-item {
+      position: absolute;
+      font-size: 50px;
+      cursor: grab;
+      user-select: none;
+      pointer-events: auto;
+      transform: translate(-50%, -50%);
+      transition: filter 0.1s;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+    .sticker-item:active { cursor: grabbing; }
+    .sticker-delete {
+      position: absolute; top: -12px; right: -12px;
+      background: red; color: white; border-radius: 50%; width: 20px; height: 20px;
+      font-size: 12px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; pointer-events: auto; z-index: 2;
+    }
     .controls-row {
-      display: flex;
-      gap: 8px;
-      padding: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
+      display: flex; gap: 8px; padding: 8px 12px; flex-wrap: wrap; justify-content: center; align-items: center;
     }
     button, select {
-      background: #fff;
-      border: 1px solid #ccd6e0;
-      padding: 10px 14px;
-      border-radius: 24px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #2c3e50;
-      cursor: pointer;
-      transition: 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
+      background: #fff; border: 1px solid #ccd6e0; padding: 10px 14px; border-radius: 24px;
+      font-size: 14px; font-weight: 600; color: #2c3e50; cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; gap: 4px; white-space: nowrap;
     }
-    button:active, select:active { transform: scale(0.96); }
-    button.primary {
-      background: #4ea4f6;
-      color: #fff;
-      border: none;
-    }
-    button.warn { background: #ff7675; color: #fff; border: none; }
-    /* Filter strip */
+    button.primary { background: #4ea4f6; color: #fff; border: none; }
     .filter-strip {
-      display: flex;
-      overflow-x: auto;
-      gap: 8px;
-      padding: 8px 12px;
-      scrollbar-width: none;
+      display: flex; overflow-x: auto; gap: 8px; padding: 8px 12px; scrollbar-width: none;
     }
     .filter-chip {
-      flex: 0 0 auto;
-      padding: 8px 14px;
-      background: #f0f3f7;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #435365;
-      cursor: pointer;
-      border: 2px solid transparent;
+      flex: 0 0 auto; padding: 8px 14px; background: #f0f3f7; border-radius: 20px;
+      font-size: 13px; font-weight: 600; color: #435365; cursor: pointer; border: 2px solid transparent;
     }
-    .filter-chip.active {
-      border-color: #4ea4f6;
-      background: #e6f0fe;
-      color: #1e5ea8;
+    .filter-chip.active { border-color: #4ea4f6; background: #e6f0fe; color: #1e5ea8; }
+    .sticker-bar {
+      display: flex; overflow-x: auto; gap: 10px; padding: 8px 12px; scrollbar-width: none;
     }
-    /* Gallery */
-    .gallery {
-      padding: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
+    .sticker-emoji {
+      font-size: 32px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+      background: #fff; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;
+      flex-shrink: 0;
     }
-    .thumb {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      cursor: pointer;
-    }
-    .thumb-placeholder {
-      color: #aaa;
-      font-size: 14px;
-      padding: 40px;
-      text-align: center;
-      width: 100%;
-    }
-    /* Timer overlay */
+    .gallery { padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; }
     .timer-overlay {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 60px;
-      color: #fff;
-      text-shadow: 0 0 20px #000;
-      z-index: 20;
-      display: none;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 70px; color: #fff; text-shadow: 0 0 20px #000; z-index: 20; display: none;
     }
-    /* Toast */
     .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: #fff;
-      padding: 10px 24px;
-      border-radius: 30px;
-      font-size: 14px;
-      z-index: 100;
-      opacity: 0;
-      transition: 0.3s;
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff;
+      padding: 10px 24px; border-radius: 30px; font-size: 14px; z-index: 100; opacity: 0; transition: 0.3s;
+    }
+    .camera-start-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+      z-index: 25; color: white; font-size: 18px; flex-direction: column; gap: 12px;
     }
   </style>
 </head>
 <body>
 <div class="app">
-  <div class="header">
-    <h1>📸 MOAI HUB</h1>
-    <p style="color:#fff; margin-top:2px;">Bố cục – Tươi sáng – Sáng tạo</p>
-  </div>
-  <!-- Tab điều hướng -->
+  <div class="header"><h1>📸 MOAI HUB</h1><p style="margin-top:2px;">AR vui nhộn – bố cục – tươi sáng</p></div>
   <div class="tab-bar">
     <div class="tab-btn active" data-tab="camera">📷 Chụp</div>
     <div class="tab-btn" data-tab="gallery">🖼️ Thư viện</div>
   </div>
 
-  <!-- Phần Camera -->
   <div id="cameraTab">
     <div class="viewfinder-container" id="viewfinder">
       <video id="video" autoplay playsinline></video>
       <canvas id="canvas"></canvas>
       <div class="overlay-layer" id="overlayLayer"></div>
+      <div class="sticker-layer" id="stickerLayer"></div>
       <div class="timer-overlay" id="timerDisplay"></div>
+      <div id="cameraStartOverlay" class="camera-start-overlay">
+        <button id="startCameraBtn" class="primary" style="padding:14px 28px; font-size:18px;">📷 Mở camera</button>
+      </div>
     </div>
 
-    <!-- Tỷ lệ khung hình -->
-    <div class="controls-row" style="justify-content: space-between; padding-bottom: 0;">
+    <div class="controls-row" style="justify-content: space-between;">
       <select id="aspectRatioSelect">
         <option value="4:3" selected>📐 4:3</option>
         <option value="16:9">📐 16:9</option>
@@ -263,19 +159,17 @@
         <option value="center">📏 Trung tâm</option>
         <option value="diagonal">📏 Đường chéo</option>
       </select>
-      <button id="flashToggle" title="Đèn flash">🔦 Tắt</button>
+      <button id="flashToggle">🔦 Tắt</button>
     </div>
 
-    <!-- Hẹn giờ -->
-    <div class="controls-row" style="padding-top: 4px;">
-      <button data-timer="0" class="timer-btn" style="background:#e6f0fe;">⚡ Ngay</button>
+    <div class="controls-row">
+      <span>⏱️ Hẹn giờ:</span>
+      <button data-timer="0" class="timer-btn active-btn">Ngay</button>
       <button data-timer="3" class="timer-btn">3s</button>
       <button data-timer="5" class="timer-btn">5s</button>
       <button data-timer="10" class="timer-btn">10s</button>
-      <span id="timerSelected" style="font-size:13px; margin-left:8px; color:#666;">Ngay</span>
     </div>
 
-    <!-- Filter xem trước -->
     <div class="filter-strip" id="filterStrip">
       <div class="filter-chip active" data-filter="none">✨ Gốc</div>
       <div class="filter-chip" data-filter="brightness(1.15) contrast(1.1) saturate(1.2)">☀️ Tươi sáng</div>
@@ -285,21 +179,29 @@
       <div class="filter-chip" data-filter="sepia(0.8) contrast(0.9) brightness(0.9)">📜 Vintage</div>
     </div>
 
+    <div class="sticker-bar" id="stickerBar">
+      <div class="sticker-emoji" data-emoji="🐱">🐱</div>
+      <div class="sticker-emoji" data-emoji="👓">👓</div>
+      <div class="sticker-emoji" data-emoji="👑">👑</div>
+      <div class="sticker-emoji" data-emoji="🎀">🎀</div>
+      <div class="sticker-emoji" data-emoji="🤠">🤠</div>
+      <div class="sticker-emoji" data-emoji="🐶">🐶</div>
+      <div class="sticker-emoji" data-emoji="💋">💋</div>
+      <div class="sticker-emoji" data-emoji="🦊">🦊</div>
+      <div class="sticker-emoji" data-emoji="🐰">🐰</div>
+      <div class="sticker-emoji" data-emoji="🧢">🧢</div>
+    </div>
+
     <div class="controls-row">
-      <button class="primary" id="captureBtn" style="flex:1; justify-content:center;">📷 Chụp ngay</button>
+      <button class="primary" id="captureBtn" style="flex:1; justify-content:center;">📷 Chụp</button>
       <button id="switchCameraBtn">🔄</button>
     </div>
   </div>
 
-  <!-- Phần Thư viện (ban đầu ẩn) -->
   <div id="galleryTab" style="display:none;">
-    <div class="gallery" id="photoGrid">
-      <div class="thumb-placeholder">Chưa có ảnh nào</div>
-    </div>
+    <div class="gallery" id="photoGrid"><div class="thumb-placeholder" style="padding:40px;">Chưa có ảnh</div></div>
   </div>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -308,6 +210,7 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const overlayLayer = document.getElementById('overlayLayer');
+    const stickerLayer = document.getElementById('stickerLayer');
     const timerDisplay = document.getElementById('timerDisplay');
     const captureBtn = document.getElementById('captureBtn');
     const switchCameraBtn = document.getElementById('switchCamera');
@@ -316,104 +219,88 @@
     const gridTypeSelect = document.getElementById('gridTypeSelect');
     const filterChips = document.querySelectorAll('.filter-chip');
     const timerBtns = document.querySelectorAll('.timer-btn');
-    const timerSelectedSpan = document.getElementById('timerSelected');
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const cameraStartOverlay = document.getElementById('cameraStartOverlay');
+    const toast = document.getElementById('toast');
+    const photoGrid = document.getElementById('photoGrid');
     const tabBtns = document.querySelectorAll('.tab-btn');
     const cameraTab = document.getElementById('cameraTab');
     const galleryTab = document.getElementById('galleryTab');
-    const photoGrid = document.getElementById('photoGrid');
-    const toast = document.getElementById('toast');
 
     let currentStream = null;
-    let facingMode = 'user'; // user=trước, environment=sau
+    let facingMode = 'user';
     let flashOn = false;
-    let selectedTimer = 0; // seconds
+    let selectedTimer = 0;
     let selectedFilter = 'none';
-    let capturedPhotos = []; // lưu dataURL
+    let cameraReady = false;
+    let capturedPhotos = [];
+    let stickers = []; // { id, emoji, x (%), y (%), el }
 
-    // Overlay render
+    // Overlay
     function updateOverlay() {
-      const gridType = gridTypeSelect.value;
-      let html = `<div class="grid-rule ${gridType}">`;
-      if (gridType === 'thirds') {
-        for (let i=0; i<9; i++) html += '<div></div>';
-      } else if (gridType === 'center') {
-        for (let i=0; i<9; i++) html += '<div></div>';
-      } else {
-        // diagonal không cần div
-      }
-      html += `</div><div class="overlay-guide-text">Bố cục ${gridType}</div>`;
+      const type = gridTypeSelect.value;
+      let html = `<div class="grid-rule ${type}">`;
+      if (type === 'thirds') for(let i=0;i<9;i++) html += '<div></div>';
+      else if (type === 'center') for(let i=0;i<9;i++) html += '<div></div>';
+      html += `</div><div class="overlay-guide-text">Bố cục ${type}</div>`;
       overlayLayer.innerHTML = html;
     }
 
-    // Áp filter lên video
+    // Filter video
     function applyVideoFilter() {
+      if (!video.srcObject) return;
       video.style.filter = selectedFilter === 'none' ? '' : selectedFilter;
     }
 
-    // Camera start
+    // Camera
     async function startCamera(facing) {
       if (currentStream) {
         currentStream.getTracks().forEach(t => t.stop());
       }
       try {
-        const constraints = {
-          video: {
-            facingMode: facing,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            ...(facing === 'environment' ? { torch: flashOn } : {})
-          }
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
         video.srcObject = stream;
         currentStream = stream;
         facingMode = facing;
-        // Kiểm tra flash thực tế
-        if (facing === 'environment') {
-          const track = stream.getVideoTracks()[0];
-          if (track.getCapabilities) {
-            const cap = track.getCapabilities();
-            if (cap.torch) {
-              track.applyConstraints({ advanced: [{ torch: flashOn }] });
-            }
-          }
-        }
+        cameraReady = true;
+        cameraStartOverlay.style.display = 'none';
         applyVideoFilter();
+        if (facing === 'environment' && flashOn) toggleFlashTorch(true);
       } catch (err) {
-        showToast('Không thể truy cập camera');
-        console.error(err);
+        showToast('Không truy cập được camera. Kiểm tra quyền.');
+        cameraStartOverlay.style.display = 'flex';
       }
     }
 
-    function toggleFlash() {
-      if (facingMode !== 'environment') {
-        showToast('Flash chỉ dùng với camera sau');
-        return;
+    startCameraBtn.addEventListener('click', () => startCamera(facingMode));
+
+    function toggleFlashTorch(force) {
+      if (facingMode !== 'environment') return;
+      const track = currentStream?.getVideoTracks()[0];
+      if (track && track.applyConstraints) {
+        track.applyConstraints({ advanced: [{ torch: force ?? flashOn }] }).catch(() => showToast('Đèn không hỗ trợ'));
       }
+    }
+
+    flashToggle.addEventListener('click', () => {
+      if (facingMode !== 'environment') { showToast('Cần camera sau'); return; }
       flashOn = !flashOn;
       flashToggle.textContent = flashOn ? '🔦 Bật' : '🔦 Tắt';
-      if (currentStream) {
-        const track = currentStream.getVideoTracks()[0];
-        track.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
-          showToast('Thiết bị không hỗ trợ đèn flash');
-          flashOn = false;
-          flashToggle.textContent = '🔦 Tắt';
-        });
-      }
-    }
+      toggleFlashTorch();
+    });
 
-    // Đổi camera
     switchCameraBtn.addEventListener('click', () => {
       const newFacing = facingMode === 'user' ? 'environment' : 'user';
-      if (newFacing === 'user') {
-        flashOn = false;
-        flashToggle.textContent = '🔦 Tắt';
-      }
+      if (newFacing === 'user') { flashOn = false; flashToggle.textContent = '🔦 Tắt'; }
       startCamera(newFacing);
     });
 
-    // Grid & filter
+    // Grid
     gridTypeSelect.addEventListener('change', updateOverlay);
+
+    // Filters
     filterChips.forEach(chip => {
       chip.addEventListener('click', () => {
         filterChips.forEach(c => c.classList.remove('active'));
@@ -423,91 +310,158 @@
       });
     });
 
-    // Timer buttons
+    // Timer
     timerBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        timerBtns.forEach(b => b.style.background = '#fff');
-        btn.style.background = '#e6f0fe';
+        timerBtns.forEach(b => b.classList.remove('active-btn'));
+        btn.classList.add('active-btn');
         selectedTimer = parseInt(btn.dataset.timer);
-        timerSelectedSpan.textContent = selectedTimer === 0 ? 'Ngay' : selectedTimer + 's';
       });
     });
 
-    // Chụp ảnh với hẹn giờ
+    // Sticker management
+    function createSticker(emoji) {
+      const id = Date.now() + Math.random();
+      const el = document.createElement('div');
+      el.className = 'sticker-item';
+      el.textContent = emoji;
+      el.setAttribute('data-id', id);
+      el.style.left = '50%';
+      el.style.top = '50%';
+      el.style.transform = 'translate(-50%, -50%)';
+      // nút xóa
+      const del = document.createElement('div');
+      del.className = 'sticker-delete';
+      del.textContent = 'x';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        removeSticker(id);
+      };
+      el.appendChild(del);
+      // Kéo thả
+      el.addEventListener('pointerdown', onStickerDragStart);
+      el.setAttribute('touch-action', 'none');
+      stickerLayer.appendChild(el);
+      stickers.push({ id, emoji, x: 50, y: 50, el });
+    }
+
+    function removeSticker(id) {
+      const idx = stickers.findIndex(s => s.id === id);
+      if (idx > -1) {
+        stickers[idx].el.remove();
+        stickers.splice(idx, 1);
+      }
+    }
+
+    let dragSticker = null, startX, startY, startLeft, startTop;
+    function onStickerDragStart(e) {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const id = el.dataset.id;
+      dragSticker = stickers.find(s => s.id == id);
+      if (!dragSticker) return;
+      const rect = stickerLayer.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      startX = clientX;
+      startY = clientY;
+      startLeft = dragSticker.x;
+      startTop = dragSticker.y;
+      window.addEventListener('pointermove', onStickerDragMove);
+      window.addEventListener('pointerup', onStickerDragEnd);
+      el.setPointerCapture(e.pointerId);
+    }
+    function onStickerDragMove(e) {
+      if (!dragSticker) return;
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      const rect = stickerLayer.getBoundingClientRect();
+      const dx = (clientX - startX) / rect.width * 100;
+      const dy = (clientY - startY) / rect.height * 100;
+      let newX = Math.min(100, Math.max(0, startLeft + dx));
+      let newY = Math.min(100, Math.max(0, startTop + dy));
+      dragSticker.x = newX;
+      dragSticker.y = newY;
+      dragSticker.el.style.left = newX + '%';
+      dragSticker.el.style.top = newY + '%';
+    }
+    function onStickerDragEnd(e) {
+      window.removeEventListener('pointermove', onStickerDragMove);
+      window.removeEventListener('pointerup', onStickerDragEnd);
+      dragSticker = null;
+    }
+
+    document.getElementById('stickerBar').addEventListener('click', (e) => {
+      const emojiEl = e.target.closest('.sticker-emoji');
+      if (!emojiEl) return;
+      createSticker(emojiEl.dataset.emoji);
+    });
+
+    // Chụp ảnh
     async function capturePhoto() {
-      if (!currentStream) return;
+      if (!cameraReady || !currentStream) {
+        showToast('Hãy mở camera trước');
+        return;
+      }
+      captureBtn.disabled = true;
       if (selectedTimer > 0) {
-        // Đếm ngược
-        captureBtn.disabled = true;
         for (let i = selectedTimer; i > 0; i--) {
           timerDisplay.style.display = 'block';
           timerDisplay.textContent = i;
-          await sleep(1000);
+          await new Promise(r => setTimeout(r, 1000));
         }
         timerDisplay.style.display = 'none';
-        captureBtn.disabled = false;
       }
-      // Lấy tỷ lệ crop
+      // Tỷ lệ crop
       const ratioStr = aspectRatioSelect.value;
-      let targetAspect;
-      if (ratioStr === '4:3') targetAspect = 4/3;
-      else if (ratioStr === '16:9') targetAspect = 16/9;
-      else targetAspect = 1/1;
-
+      let targetAspect = ratioStr === '4:3' ? 4/3 : ratioStr === '16:9' ? 16/9 : 1/1;
       const vw = video.videoWidth, vh = video.videoHeight;
-      // Tính toán vùng crop giữa khung video để khớp tỷ lệ mong muốn
       let cropW, cropH, sx, sy;
       const videoAspect = vw / vh;
       if (targetAspect > videoAspect) {
-        // rộng hơn -> crop chiều cao
-        cropH = vh;
-        cropW = vh * targetAspect;
-        sx = (vw - cropW) / 2;
-        sy = 0;
+        cropH = vh; cropW = vh * targetAspect; sx = (vw - cropW)/2; sy = 0;
       } else {
-        cropW = vw;
-        cropH = vw / targetAspect;
-        sx = 0;
-        sy = (vh - cropH) / 2;
+        cropW = vw; cropH = vw / targetAspect; sx = 0; sy = (vh - cropH)/2;
       }
-      // Vẽ lên canvas với filter
       canvas.width = cropW;
       canvas.height = cropH;
-      ctx.clearRect(0,0,cropW,cropH);
-      // Áp filter lên canvas
       ctx.filter = selectedFilter === 'none' ? 'none' : selectedFilter;
       ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
+      // Vẽ stickers
+      const containerRect = document.getElementById('viewfinder').getBoundingClientRect();
+      const scaleX = cropW / containerRect.width;
+      const scaleY = cropH / containerRect.height;
+      ctx.filter = 'none'; // reset filter để sticker không bị ảnh hưởng? Thực ra sticker nên giữ màu gốc
+      stickers.forEach(s => {
+        const stickerX = s.x / 100 * cropW;
+        const stickerY = s.y / 100 * cropH;
+        const fontSize = 50 * (cropW / containerRect.width); // scale tương đối
+        ctx.save();
+        ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(s.emoji, stickerX, stickerY);
+        ctx.restore();
+      });
       const dataURL = canvas.toDataURL('image/jpeg', 0.92);
-      capturedPhotos.unshift(dataURL); // thêm vào đầu
+      capturedPhotos.unshift(dataURL);
       updateGallery();
-      showToast('Đã chụp! Ảnh lưu trong thư viện');
-      // Reset filter canvas ? không cần
+      showToast('Đã chụp! Xem trong thư viện');
       ctx.filter = 'none';
+      captureBtn.disabled = false;
     }
 
     captureBtn.addEventListener('click', capturePhoto);
 
-    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-    // Thư viện ảnh
     function updateGallery() {
       if (capturedPhotos.length === 0) {
-        photoGrid.innerHTML = '<div class="thumb-placeholder">Chưa có ảnh nào</div>';
-        return;
+        photoGrid.innerHTML = '<div class="thumb-placeholder" style="padding:40px;">Chưa có ảnh</div>';
+      } else {
+        photoGrid.innerHTML = capturedPhotos.map((src,i) => `<img class="thumb" src="${src}" onclick="window.open('${src}')">`).join('');
       }
-      let html = '';
-      capturedPhotos.forEach((src, idx) => {
-        html += `<img class="thumb" src="${src}" data-index="${idx}" onclick="window.previewImage(this.src)">`;
-      });
-      photoGrid.innerHTML = html;
     }
 
-    window.previewImage = function(src) {
-      const w = window.open('', '_blank');
-      w.document.write(`<img src="${src}" style="max-width:100%; height:auto; display:block; margin:0 auto;">`);
-    };
-
-    // Chuyển tab
+    // Tabs
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         tabBtns.forEach(b => b.classList.remove('active'));
@@ -516,39 +470,26 @@
         if (tab === 'camera') {
           cameraTab.style.display = 'block';
           galleryTab.style.display = 'none';
-          // Khởi động lại camera nếu chưa chạy
-          if (!currentStream) startCamera('user');
         } else {
           cameraTab.style.display = 'none';
           galleryTab.style.display = 'block';
-          // Dừng camera tiết kiệm pin
-          if (currentStream) {
-            currentStream.getTracks().forEach(t => t.stop());
-            currentStream = null;
-          }
         }
       });
     });
 
-    // Thay đổi tỷ lệ khung hình -> cập nhật viewfinder container
     aspectRatioSelect.addEventListener('change', function() {
-      const ratio = this.value;
       const vf = document.getElementById('viewfinder');
-      if (ratio === '4:3') vf.style.aspectRatio = '4/3';
-      else if (ratio === '16:9') vf.style.aspectRatio = '16/9';
-      else vf.style.aspectRatio = '1/1';
+      vf.style.aspectRatio = this.value === '16:9' ? '16/9' : this.value === '1:1' ? '1/1' : '4/3';
     });
 
     function showToast(msg) {
       toast.textContent = msg;
       toast.style.opacity = '1';
-      setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+      setTimeout(() => toast.style.opacity = '0', 2000);
     }
 
-    // Khởi tạo
+    // Init
     updateOverlay();
-    startCamera('user');
-    applyVideoFilter();
     document.getElementById('viewfinder').style.aspectRatio = '4/3';
   })();
 </script>
