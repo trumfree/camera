@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MOAI HUB - Chụp ảnh bố cục đẹp</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #e9f0f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+    .app {
+      width: 100%;
+      max-width: 500px;
+      background: #fff;
+      border-radius: 36px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+    }
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #a8d8ea, #c3bef7);
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      background: #f8fafc;
+      border-bottom: 1px solid #e0e5ec;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-weight: 600;
+      color: #7c8a9a;
+      cursor: pointer;
+      transition: 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+    .tab-btn.active {
+      color: #4ea4f6;
+      border-bottom-color: #4ea4f6;
+    }
+    /* Viewfinder container */
+    .viewfinder-container {
+      position: relative;
+      background: #000;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      margin: 8px 12px 0;
+      border-radius: 24px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    video, canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas { display: none; }
+    /* Overlays */
+    .overlay-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .grid-rule {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    .grid-rule.thirds {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+    }
+    .grid-rule.thirds div {
+      border: 1px dashed rgba(255,255,255,0.7);
+    }
+    .grid-rule.center {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      grid-template-rows: 1fr 2fr 1fr;
+    }
+    .grid-rule.center div {
+      border: 1px dashed rgba(255,255,255,0.7);
+    }
+    .grid-rule.diagonal {
+      background: linear-gradient(135deg, transparent 49.5%, rgba(255,255,255,0.6) 49.5%, rgba(255,255,255,0.6) 50.5%, transparent 50.5%),
+                  linear-gradient(45deg, transparent 49.5%, rgba(255,255,255,0.6) 49.5%, rgba(255,255,255,0.6) 50.5%, transparent 50.5%);
+    }
+    .overlay-guide-text {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    /* Controls */
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    button, select {
+      background: #fff;
+      border: 1px solid #ccd6e0;
+      padding: 10px 14px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2c3e50;
+      cursor: pointer;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    button:active, select:active { transform: scale(0.96); }
+    button.primary {
+      background: #4ea4f6;
+      color: #fff;
+      border: none;
+    }
+    button.warn { background: #ff7675; color: #fff; border: none; }
+    /* Filter strip */
+    .filter-strip {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 8px 12px;
+      scrollbar-width: none;
+    }
+    .filter-chip {
+      flex: 0 0 auto;
+      padding: 8px 14px;
+      background: #f0f3f7;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #435365;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .filter-chip.active {
+      border-color: #4ea4f6;
+      background: #e6f0fe;
+      color: #1e5ea8;
+    }
+    /* Gallery */
+    .gallery {
+      padding: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    .thumb-placeholder {
+      color: #aaa;
+      font-size: 14px;
+      padding: 40px;
+      text-align: center;
+      width: 100%;
+    }
+    /* Timer overlay */
+    .timer-overlay {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 60px;
+      color: #fff;
+      text-shadow: 0 0 20px #000;
+      z-index: 20;
+      display: none;
+    }
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      z-index: 100;
+      opacity: 0;
+      transition: 0.3s;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>📸 MOAI HUB</h1>
+    <p style="color:#fff; margin-top:2px;">Bố cục – Tươi sáng – Sáng tạo</p>
+  </div>
+  <!-- Tab điều hướng -->
+  <div class="tab-bar">
+    <div class="tab-btn active" data-tab="camera">📷 Chụp</div>
+    <div class="tab-btn" data-tab="gallery">🖼️ Thư viện</div>
+  </div>
+
+  <!-- Phần Camera -->
+  <div id="cameraTab">
+    <div class="viewfinder-container" id="viewfinder">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas"></canvas>
+      <div class="overlay-layer" id="overlayLayer"></div>
+      <div class="timer-overlay" id="timerDisplay"></div>
+    </div>
+
+    <!-- Tỷ lệ khung hình -->
+    <div class="controls-row" style="justify-content: space-between; padding-bottom: 0;">
+      <select id="aspectRatioSelect">
+        <option value="4:3" selected>📐 4:3</option>
+        <option value="16:9">📐 16:9</option>
+        <option value="1:1">📐 1:1</option>
+      </select>
+      <select id="gridTypeSelect">
+        <option value="thirds">📏 Lưới 1/3</option>
+        <option value="center">📏 Trung tâm</option>
+        <option value="diagonal">📏 Đường chéo</option>
+      </select>
+      <button id="flashToggle" title="Đèn flash">🔦 Tắt</button>
+    </div>
+
+    <!-- Hẹn giờ -->
+    <div class="controls-row" style="padding-top: 4px;">
+      <button data-timer="0" class="timer-btn" style="background:#e6f0fe;">⚡ Ngay</button>
+      <button data-timer="3" class="timer-btn">3s</button>
+      <button data-timer="5" class="timer-btn">5s</button>
+      <button data-timer="10" class="timer-btn">10s</button>
+      <span id="timerSelected" style="font-size:13px; margin-left:8px; color:#666;">Ngay</span>
+    </div>
+
+    <!-- Filter xem trước -->
+    <div class="filter-strip" id="filterStrip">
+      <div class="filter-chip active" data-filter="none">✨ Gốc</div>
+      <div class="filter-chip" data-filter="brightness(1.15) contrast(1.1) saturate(1.2)">☀️ Tươi sáng</div>
+      <div class="filter-chip" data-filter="sepia(0.4) contrast(1.1) brightness(1.1)">🔥 Ấm áp</div>
+      <div class="filter-chip" data-filter="hue-rotate(30deg) saturate(0.9) brightness(1.05)">❄️ Mát lạnh</div>
+      <div class="filter-chip" data-filter="grayscale(1)">⚫ B&W</div>
+      <div class="filter-chip" data-filter="sepia(0.8) contrast(0.9) brightness(0.9)">📜 Vintage</div>
+    </div>
+
+    <div class="controls-row">
+      <button class="primary" id="captureBtn" style="flex:1; justify-content:center;">📷 Chụp ngay</button>
+      <button id="switchCameraBtn">🔄</button>
+    </div>
+  </div>
+
+  <!-- Phần Thư viện (ban đầu ẩn) -->
+  <div id="galleryTab" style="display:none;">
+    <div class="gallery" id="photoGrid">
+      <div class="thumb-placeholder">Chưa có ảnh nào</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  (function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const overlayLayer = document.getElementById('overlayLayer');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const captureBtn = document.getElementById('captureBtn');
+    const switchCameraBtn = document.getElementById('switchCamera');
+    const flashToggle = document.getElementById('flashToggle');
+    const aspectRatioSelect = document.getElementById('aspectRatioSelect');
+    const gridTypeSelect = document.getElementById('gridTypeSelect');
+    const filterChips = document.querySelectorAll('.filter-chip');
+    const timerBtns = document.querySelectorAll('.timer-btn');
+    const timerSelectedSpan = document.getElementById('timerSelected');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const cameraTab = document.getElementById('cameraTab');
+    const galleryTab = document.getElementById('galleryTab');
+    const photoGrid = document.getElementById('photoGrid');
+    const toast = document.getElementById('toast');
+
+    let currentStream = null;
+    let facingMode = 'user'; // user=trước, environment=sau
+    let flashOn = false;
+    let selectedTimer = 0; // seconds
+    let selectedFilter = 'none';
+    let capturedPhotos = []; // lưu dataURL
+
+    // Overlay render
+    function updateOverlay() {
+      const gridType = gridTypeSelect.value;
+      let html = `<div class="grid-rule ${gridType}">`;
+      if (gridType === 'thirds') {
+        for (let i=0; i<9; i++) html += '<div></div>';
+      } else if (gridType === 'center') {
+        for (let i=0; i<9; i++) html += '<div></div>';
+      } else {
+        // diagonal không cần div
+      }
+      html += `</div><div class="overlay-guide-text">Bố cục ${gridType}</div>`;
+      overlayLayer.innerHTML = html;
+    }
+
+    // Áp filter lên video
+    function applyVideoFilter() {
+      video.style.filter = selectedFilter === 'none' ? '' : selectedFilter;
+    }
+
+    // Camera start
+    async function startCamera(facing) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
+      try {
+        const constraints = {
+          video: {
+            facingMode: facing,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            ...(facing === 'environment' ? { torch: flashOn } : {})
+          }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        currentStream = stream;
+        facingMode = facing;
+        // Kiểm tra flash thực tế
+        if (facing === 'environment') {
+          const track = stream.getVideoTracks()[0];
+          if (track.getCapabilities) {
+            const cap = track.getCapabilities();
+            if (cap.torch) {
+              track.applyConstraints({ advanced: [{ torch: flashOn }] });
+            }
+          }
+        }
+        applyVideoFilter();
+      } catch (err) {
+        showToast('Không thể truy cập camera');
+        console.error(err);
+      }
+    }
+
+    function toggleFlash() {
+      if (facingMode !== 'environment') {
+        showToast('Flash chỉ dùng với camera sau');
+        return;
+      }
+      flashOn = !flashOn;
+      flashToggle.textContent = flashOn ? '🔦 Bật' : '🔦 Tắt';
+      if (currentStream) {
+        const track = currentStream.getVideoTracks()[0];
+        track.applyConstraints({ advanced: [{ torch: flashOn }] }).catch(() => {
+          showToast('Thiết bị không hỗ trợ đèn flash');
+          flashOn = false;
+          flashToggle.textContent = '🔦 Tắt';
+        });
+      }
+    }
+
+    // Đổi camera
+    switchCameraBtn.addEventListener('click', () => {
+      const newFacing = facingMode === 'user' ? 'environment' : 'user';
+      if (newFacing === 'user') {
+        flashOn = false;
+        flashToggle.textContent = '🔦 Tắt';
+      }
+      startCamera(newFacing);
+    });
+
+    // Grid & filter
+    gridTypeSelect.addEventListener('change', updateOverlay);
+    filterChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        filterChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedFilter = chip.dataset.filter;
+        applyVideoFilter();
+      });
+    });
+
+    // Timer buttons
+    timerBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        timerBtns.forEach(b => b.style.background = '#fff');
+        btn.style.background = '#e6f0fe';
+        selectedTimer = parseInt(btn.dataset.timer);
+        timerSelectedSpan.textContent = selectedTimer === 0 ? 'Ngay' : selectedTimer + 's';
+      });
+    });
+
+    // Chụp ảnh với hẹn giờ
+    async function capturePhoto() {
+      if (!currentStream) return;
+      if (selectedTimer > 0) {
+        // Đếm ngược
+        captureBtn.disabled = true;
+        for (let i = selectedTimer; i > 0; i--) {
+          timerDisplay.style.display = 'block';
+          timerDisplay.textContent = i;
+          await sleep(1000);
+        }
+        timerDisplay.style.display = 'none';
+        captureBtn.disabled = false;
+      }
+      // Lấy tỷ lệ crop
+      const ratioStr = aspectRatioSelect.value;
+      let targetAspect;
+      if (ratioStr === '4:3') targetAspect = 4/3;
+      else if (ratioStr === '16:9') targetAspect = 16/9;
+      else targetAspect = 1/1;
+
+      const vw = video.videoWidth, vh = video.videoHeight;
+      // Tính toán vùng crop giữa khung video để khớp tỷ lệ mong muốn
+      let cropW, cropH, sx, sy;
+      const videoAspect = vw / vh;
+      if (targetAspect > videoAspect) {
+        // rộng hơn -> crop chiều cao
+        cropH = vh;
+        cropW = vh * targetAspect;
+        sx = (vw - cropW) / 2;
+        sy = 0;
+      } else {
+        cropW = vw;
+        cropH = vw / targetAspect;
+        sx = 0;
+        sy = (vh - cropH) / 2;
+      }
+      // Vẽ lên canvas với filter
+      canvas.width = cropW;
+      canvas.height = cropH;
+      ctx.clearRect(0,0,cropW,cropH);
+      // Áp filter lên canvas
+      ctx.filter = selectedFilter === 'none' ? 'none' : selectedFilter;
+      ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
+      const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+      capturedPhotos.unshift(dataURL); // thêm vào đầu
+      updateGallery();
+      showToast('Đã chụp! Ảnh lưu trong thư viện');
+      // Reset filter canvas ? không cần
+      ctx.filter = 'none';
+    }
+
+    captureBtn.addEventListener('click', capturePhoto);
+
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    // Thư viện ảnh
+    function updateGallery() {
+      if (capturedPhotos.length === 0) {
+        photoGrid.innerHTML = '<div class="thumb-placeholder">Chưa có ảnh nào</div>';
+        return;
+      }
+      let html = '';
+      capturedPhotos.forEach((src, idx) => {
+        html += `<img class="thumb" src="${src}" data-index="${idx}" onclick="window.previewImage(this.src)">`;
+      });
+      photoGrid.innerHTML = html;
+    }
+
+    window.previewImage = function(src) {
+      const w = window.open('', '_blank');
+      w.document.write(`<img src="${src}" style="max-width:100%; height:auto; display:block; margin:0 auto;">`);
+    };
+
+    // Chuyển tab
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        if (tab === 'camera') {
+          cameraTab.style.display = 'block';
+          galleryTab.style.display = 'none';
+          // Khởi động lại camera nếu chưa chạy
+          if (!currentStream) startCamera('user');
+        } else {
+          cameraTab.style.display = 'none';
+          galleryTab.style.display = 'block';
+          // Dừng camera tiết kiệm pin
+          if (currentStream) {
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
+          }
+        }
+      });
+    });
+
+    // Thay đổi tỷ lệ khung hình -> cập nhật viewfinder container
+    aspectRatioSelect.addEventListener('change', function() {
+      const ratio = this.value;
+      const vf = document.getElementById('viewfinder');
+      if (ratio === '4:3') vf.style.aspectRatio = '4/3';
+      else if (ratio === '16:9') vf.style.aspectRatio = '16/9';
+      else vf.style.aspectRatio = '1/1';
+    });
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+    }
+
+    // Khởi tạo
+    updateOverlay();
+    startCamera('user');
+    applyVideoFilter();
+    document.getElementById('viewfinder').style.aspectRatio = '4/3';
+  })();
+</script>
+</body>
+</html>
